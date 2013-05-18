@@ -1,9 +1,38 @@
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <map>
 #include <vector>
 
 #include <idlgen.hh>
+
+static std::string ToLower(const std::string &s) {
+	std::string ret(s);
+	std::transform(ret.begin(), ret.end(), ret.begin(), ::tolower);
+	return ret;
+}
+
+static std::string ToUpper(const std::string &s) {
+	std::string ret(s);
+	std::transform(ret.begin(), ret.end(), ret.begin(), ::toupper);
+	return ret;
+}
+
+struct IfdefGuard {
+	const std::string &_name;
+	std::ostream &_stream;
+
+	IfdefGuard(const std::string &name, std::ostream &_stream)
+		: _name(name), _stream(_stream)
+	{
+		_stream << "#ifndef " << _name << "\n";
+		_stream << "#define " << _name << "\n\n";
+	}
+
+	~IfdefGuard() {
+		_stream << "\n#endif // " << _name << "\n";
+	}
+};
 
 struct SessionGenerator : public Generator {
 	const std::string _name;
@@ -13,6 +42,11 @@ struct SessionGenerator : public Generator {
 		: Generator(), _name(name), _stream(_stream)
 	{}
 	virtual void generate(Interface *iface) const {
+		//ifdef guard
+		auto hdr_name = "_INCLUDE__" + ToUpper(_name) + 
+			"_SESSION_H__CLIENT_H_"; 
+		IfdefGuard ig(hdr_name, _stream);
+
 		_stream << "struct Session_client : Genode::Rpc_client<Session>\n";
 		_stream << "{\n";
 
