@@ -7,57 +7,57 @@
 
 struct SessionGenerator : public Generator {
 	const std::string _name;
+	std::ostream &_stream;
 
-	SessionGenerator(const std::string name)
-		: Generator(), _name(name)
+	SessionGenerator(const std::string name, std::ostream &_stream)
+		: Generator(), _name(name), _stream(_stream)
 	{}
 	virtual void generate(Interface *iface) const {
-		std::cout << "struct Session_client : Genode::Rpc_client<Session>" 
-		<< std::endl;
-		std::cout << "{" << std::endl;
+		_stream << "struct Session_client : Genode::Rpc_client<Session>\n";
+		_stream << "{\n";
 
 		for (Method *m : iface->methods()) {
-			std::cout << "\t";
-			std::cout << m->returnType()->name();
-			std::cout << " " << m->name();
+			_stream << "\t";
+			_stream << m->returnType()->name();
+			_stream << " " << m->name();
 			
 			// argument list
-			std::cout << "(";
+			_stream << "(";
 			bool firstArg = true;
 			for (auto &kv : m->arguments()) {
 				if (!firstArg) {
-					std::cout << ", ";
+					_stream << ", ";
 				}
 				else {
 					firstArg = false;
 				}
 
-				std::cout << kv.second->name() << " ";
-				std::cout << kv.first;
+				_stream << kv.second->name() << " ";
+				_stream << kv.first;
 			}
-			std::cout << ")";
+			_stream << ")";
 			
 			//RPC stub body
-			std::cout << " {" << std::endl;
-			std::cout << "\t\tcall<Rpc_" << m->name() << ">(";
+			_stream << " {\n";
+			_stream << "\t\tcall<Rpc_" << m->name() << ">(";
 
 			bool firstRpcArg = true;
 			for (auto &kv : m->arguments()) {
 				if (!firstRpcArg) {
-					std::cout << ", ";
+					_stream << ", ";
 				}
 				else {
 					firstRpcArg = false;
 				}
 
-				std::cout << kv.first;
+				_stream << kv.first;
 			}
 
-			std::cout << ");" << std::endl;
-			std::cout << "\t}" << std::endl;
+			_stream << ");\n";
+			_stream << "\t}\n";
 		}
 
-		std::cout << "};" << std::endl;
+		_stream << "};\n";
 	}
 };
 
@@ -93,7 +93,7 @@ static void test_gpio(void) {
 		}
 	} iface_gpio;
 
-	SessionGenerator g("Gpio");
+	SessionGenerator g("Gpio", std::cout);
 	g.generate(&iface_gpio);
 };
 
