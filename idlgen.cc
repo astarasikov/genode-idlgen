@@ -34,11 +34,26 @@ struct IfdefGuard {
 	}
 };
 
+struct NamespaceGuard {
+	const std::string &_name;
+	std::ostream &_stream;
+
+	NamespaceGuard(const std::string &name, std::ostream &_stream)
+		: _name(name), _stream(_stream)
+	{	
+		_stream << "namespace " << _name << " {\n\n";
+	}
+
+	~NamespaceGuard() {
+		_stream << "} //namespace " << _name << "\n";
+	}
+};
+
 struct SessionGenerator : public Generator {
 	const std::string _name;
 	std::ostream &_stream;
 
-	SessionGenerator(const std::string name, std::ostream &_stream)
+	SessionGenerator(const std::string &name, std::ostream &_stream)
 		: Generator(), _name(name), _stream(_stream)
 	{}
 	virtual void generate(Interface *iface) const {
@@ -47,8 +62,21 @@ struct SessionGenerator : public Generator {
 			"_SESSION_H__CLIENT_H_"; 
 		IfdefGuard ig(hdr_name, _stream);
 
+		//namespace to wrap class. Namespace declaration
+		//is closed by the NamespaceGuard destructor
+		NamespaceGuard ng(_name, _stream);
+
+		//headers
+		_stream << "#include <" << ToLower(_name)
+			<< "_session/capability.h>\n";
+		_stream << "#include <base/rpc_client.h>\n\n";
+
 		_stream << "struct Session_client : Genode::Rpc_client<Session>\n";
 		_stream << "{\n";
+
+		//constructor
+		_stream << "\texplicit Session_client(Session_capability session)\n"
+			<< "\t: Genode::Rpc_client<Session>(session) { }\n\n";
 
 		for (Method *m : iface->methods()) {
 			_stream << "\t";
@@ -91,7 +119,7 @@ struct SessionGenerator : public Generator {
 			_stream << "\t}\n";
 		}
 
-		_stream << "};\n";
+		_stream << "};\n\n";
 	}
 };
 
