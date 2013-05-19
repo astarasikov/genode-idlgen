@@ -85,7 +85,7 @@ struct SessionClientGenerator : public Generator {
 		for (unsigned i = 0; i <= level; i++) {
 			_stream << "\t";
 		}
-		if (m->returnType()->name() != void) {
+		if (m->returnType()->name() != "void") {
 			_stream << "return ";
 		}
 		_stream << "call<Rpc_" << m->name() << ">(";
