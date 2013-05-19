@@ -43,7 +43,7 @@ enum BuiltinType {
 	SIZE_T,
 };
 
-static Type *builtinType(enum BuiltinType type) {
+static inline std::map<enum BuiltinType, Type*> makeBuitins(void) {
 	static std::map<enum BuiltinType, Type*> builtins;
 	#define MK_BUILTIN(t, str) do {\
 		static struct __type_t : public Type {\
@@ -74,7 +74,11 @@ static Type *builtinType(enum BuiltinType type) {
 	#undef MK_UINT
 	#undef MK_INT
 	#undef MK_BUILTIN
+	return builtins;
+}
 
+static Type *builtinType(enum BuiltinType type) {
+	static std::map<enum BuiltinType, Type*> builtins = makeBuitins();
 	return builtins[type];
 }
 
