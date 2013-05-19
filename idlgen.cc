@@ -49,13 +49,63 @@ struct NamespaceGuard {
 	}
 };
 
-struct SessionGenerator : public Generator {
+struct SessionClientGenerator : public Generator {
 	const std::string _name;
 	std::ostream &_stream;
 
-	SessionGenerator(const std::string &name, std::ostream &_stream)
+	SessionClientGenerator(const std::string &name, std::ostream &_stream)
 		: Generator(), _name(name), _stream(_stream)
 	{}
+
+	void emitMethod(const Method *m, unsigned level) const {
+		for (unsigned i = 0; i < level; i++) {
+			_stream << "\t";
+		}
+		_stream << m->returnType()->name();
+		_stream << " " << m->name();
+		
+		// argument list
+		_stream << "(";
+		bool firstArg = true;
+		for (auto &kv : m->arguments()) {
+			if (!firstArg) {
+				_stream << ", ";
+			}
+			else {
+				firstArg = false;
+			}
+
+			_stream << kv.second->name() << " ";
+			_stream << kv.first;
+		}
+		_stream << ")";
+		
+		//RPC stub body
+		_stream << " {\n";
+		for (unsigned i = 0; i <= level; i++) {
+			_stream << "\t";
+		}
+		_stream << "call<Rpc_" << m->name() << ">(";
+
+		bool firstRpcArg = true;
+		for (auto &kv : m->arguments()) {
+			if (!firstRpcArg) {
+				_stream << ", ";
+			}
+			else {
+				firstRpcArg = false;
+			}
+
+			_stream << kv.first;
+		}
+
+		_stream << ");\n";
+		for (unsigned i = 0; i < level; i++) {
+			_stream << "\t";
+		}
+		_stream << "}\n";
+	}
+
 	virtual void generate(Interface *iface) const {
 		//ifdef guard
 		auto hdr_name = "_INCLUDE__" + ToUpper(_name) + 
@@ -79,47 +129,22 @@ struct SessionGenerator : public Generator {
 			<< "\t: Genode::Rpc_client<Session>(session) { }\n\n";
 
 		for (Method *m : iface->methods()) {
-			_stream << "\t";
-			_stream << m->returnType()->name();
-			_stream << " " << m->name();
-			
-			// argument list
-			_stream << "(";
-			bool firstArg = true;
-			for (auto &kv : m->arguments()) {
-				if (!firstArg) {
-					_stream << ", ";
-				}
-				else {
-					firstArg = false;
-				}
-
-				_stream << kv.second->name() << " ";
-				_stream << kv.first;
-			}
-			_stream << ")";
-			
-			//RPC stub body
-			_stream << " {\n";
-			_stream << "\t\tcall<Rpc_" << m->name() << ">(";
-
-			bool firstRpcArg = true;
-			for (auto &kv : m->arguments()) {
-				if (!firstRpcArg) {
-					_stream << ", ";
-				}
-				else {
-					firstRpcArg = false;
-				}
-
-				_stream << kv.first;
-			}
-
-			_stream << ");\n";
-			_stream << "\t}\n";
+			emitMethod(m, 1);
 		}
 
 		_stream << "};\n\n";
+	}
+};
+
+struct SessionCapabilityGenerator: public Generator {
+	const std::string _name;
+	std::ostream &_stream;
+
+	SessionCapabilityGenerator(const std::string &name, std::ostream &_stream)
+		: Generator(), _name(name), _stream(_stream)
+	{}
+
+	virtual void generate(Interface *iface) const {
 	}
 };
 
@@ -155,7 +180,7 @@ static void test_gpio(void) {
 		}
 	} iface_gpio;
 
-	SessionGenerator g("Gpio", std::cout);
+	SessionClientGenerator g("Gpio", std::cout);
 	g.generate(&iface_gpio);
 };
 
